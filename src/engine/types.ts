@@ -10,6 +10,7 @@ export type BatteryState =
   | 'ISOLATED'
 export type BatteryKind = 'second-life' | 'new'
 export type SourceKind = 'solar' | 'second-life' | 'new-battery' | 'grid'
+export type CaseId = 'worst' | 'normal' | 'best'
 
 export interface EV {
   id: string
@@ -139,6 +140,7 @@ export interface SimState {
   totals: Totals
   metrics: Metrics
   activeScenario: string | null
+  activeCase: CaseId
   faultCount: number
   reconfigCount: number
   seq: number
@@ -158,6 +160,7 @@ export type Action =
   | { type: 'SET_GRID_MAX'; value: number }
   | { type: 'SET_TARIFF'; value: TariffLevel }
   | { type: 'ADD_EV' }
+  | { type: 'SET_CASE'; value: CaseId }
   | { type: 'REMOVE_EV'; id: string }
   | { type: 'UPDATE_EV'; id: string; patch: Partial<EV> }
   | { type: 'FAULT'; target: FaultTarget }

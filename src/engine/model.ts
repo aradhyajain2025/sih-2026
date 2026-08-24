@@ -5,10 +5,12 @@ import {
   HS_SOC,
   HS_SOH,
   HS_TEMP,
+  PRIORITY_HORIZON_S,
   PRIORITY_W1,
   PRIORITY_W2,
   PRIORITY_W3,
-  WAIT_NORM_SECONDS,
+  PRIORITY_W4,
+  PRIORITY_W5,
 } from './constants'
 
 export const clamp = (x: number, lo: number, hi: number) =>
@@ -72,20 +74,33 @@ export function degradationCostPerKWh(baseCost: number, soh: number): number {
   return baseCost * (2 - soh)
 }
 
-// ---- EV charging priority ----
+// ---- EV charging priority — P_i = w1·U + w2·S + w3·D + w4·Q + w5·C ----
 
 export function deadlineUrgency(timeToDepartureS: number): number {
-  // 0 when far away, →1 as departure approaches (30 min horizon).
-  const horizon = 1800
-  return clamp(1 - timeToDepartureS / horizon, 0, 1)
+  return clamp(1 - timeToDepartureS / PRIORITY_HORIZON_S, 0, 1)
 }
 
 export function priorityScore(ev: EV): number {
-  const gap = clamp(1 - ev.soc / Math.max(ev.targetSoc, 1), 0, 1)
-  const wait = clamp(ev.waitTimeS / WAIT_NORM_SECONDS, 0, 1)
-  const deadline = deadlineUrgency(ev.timeToDepartureS)
-  const raw = PRIORITY_W1 * gap + PRIORITY_W2 * wait + PRIORITY_W3 * deadline
-  return raw * ev.priorityWeight
+  // U: wait urgency — how long this EV has been queued
+  const U = clamp(ev.waitTimeS / PRIORITY_HORIZON_S, 0, 1)
+
+  // S: SOC deficit — absolute gap to target (0 = full, 1 = empty vs target)
+  const S = clamp((ev.targetSoc - ev.soc) / 100, 0, 1)
+
+  // D: departure deadline urgency — 2h horizon
+  const D = deadlineUrgency(ev.timeToDepartureS)
+
+  // Q: operator-assigned priority weight, normalized from slider range 1–5
+  const Q = clamp((ev.priorityWeight - 1) / 4, 0, 1)
+
+  // C: charge feasibility — fraction of remaining time consumed by charging at max rate.
+  //    High C means the EV MUST start now to reach target before departure.
+  const energyNeededKWh = clamp((ev.targetSoc - ev.soc) / 100, 0, 1) * ev.capacityKWh
+  const timeNeededH = energyNeededKWh / Math.max(ev.maxPowerKW, 1)
+  const timeAvailH = ev.timeToDepartureS / 3600
+  const C = timeAvailH > 0 ? clamp(timeNeededH / timeAvailH, 0, 1) : 1
+
+  return PRIORITY_W1 * U + PRIORITY_W2 * S + PRIORITY_W3 * D + PRIORITY_W4 * Q + PRIORITY_W5 * C
 }
 
 // ---- Solar generation curve ----

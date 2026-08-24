@@ -10,11 +10,14 @@ export const EV_CHARGE_EFFICIENCY = 0.95
 export const BATTERY_CHARGE_EFFICIENCY = 0.94
 export const CO2_GRID_KG_PER_KWH = 0.71 // India grid emission factor (illustrative)
 
-// EV charging priority weights (Section 2 defaults)
-export const PRIORITY_W1 = 0.4 // gap-to-target
-export const PRIORITY_W2 = 0.3 // normalized wait time
-export const PRIORITY_W3 = 0.3 // deadline urgency
-export const WAIT_NORM_SECONDS = 3600 // wait time normalization horizon
+// EV charging priority weights — P_i = w1·U + w2·S + w3·D + w4·Q + w5·C
+// EV charging priority weights — P_i = w1·U + w2·S + w3·D + w4·Q + w5·C
+export const PRIORITY_W1 = 0.10 // U: wait urgency
+export const PRIORITY_W2 = 0.25 // S: SOC deficit
+export const PRIORITY_W3 = 0.25 // D: departure deadline
+export const PRIORITY_W4 = 0.20 // Q: operator priority weight
+export const PRIORITY_W5 = 0.20 // C: charge feasibility (time-to-full / time-available)
+export const PRIORITY_HORIZON_S = 7200 // 2-hour normalization horizon for U and D
 
 // Health-score sub-weights (Section 2)
 export const HS_SOH = 0.4
@@ -50,9 +53,9 @@ export interface EVProfile {
   maxPowerKW: number
 }
 
-// Reference vehicle for the project + two mixed mid-size profiles.
+// EV1 / EV2 / EV3 — indices used by load-case selection.
 export const EV_PROFILES: EVProfile[] = [
-  { model: 'Kia EV9', capacityKWh: 99.8, nominalV: 552, maxPowerKW: 350 },
-  { model: 'Compact EV', capacityKWh: 45, nominalV: 400, maxPowerKW: 50 },
-  { model: 'Sedan EV', capacityKWh: 60, nominalV: 400, maxPowerKW: 120 },
+  { model: 'Kia EV9', capacityKWh: 99.8, nominalV: 552, maxPowerKW: 350 }, // EV1
+  { model: 'Tata Punch EV', capacityKWh: 35, nominalV: 320, maxPowerKW: 50 }, // EV2
+  { model: 'MG Comet EV', capacityKWh: 17, nominalV: 300, maxPowerKW: 7 }, // EV3
 ]

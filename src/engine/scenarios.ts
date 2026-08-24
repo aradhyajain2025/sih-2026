@@ -20,6 +20,7 @@ export const SCENARIOS: ScenarioMeta[] = [
 function setEV(ev: EV | undefined, p: Partial<EV>) {
   if (!ev) return
   Object.assign(ev, p)
+  ev.targetSoc = 100 // demo: always charge to full
   ev.waitTimeS = 0
 }
 

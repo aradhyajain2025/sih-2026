@@ -26,17 +26,12 @@ export function ScenarioPanel() {
                   active ? 'text-grid' : 'text-muted group-hover:text-primary'
                 }`}
               />
-              <span>
-                <span
-                  className={`block text-xs font-semibold ${
-                    active ? 'text-grid' : 'text-primary'
-                  }`}
-                >
-                  {sc.name}
-                </span>
-                <span className="block text-[10px] leading-tight text-muted">
-                  {sc.blurb}
-                </span>
+              <span
+                className={`text-xs font-semibold ${
+                  active ? 'text-grid' : 'text-primary'
+                }`}
+              >
+                {sc.name}
               </span>
             </button>
           )

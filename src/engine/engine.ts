@@ -31,6 +31,7 @@ import { applyScenario } from './scenarios'
 import type {
   Action,
   BatteryModule,
+  CaseId,
   EV,
   FaultTarget,
   LogEntry,
@@ -56,7 +57,7 @@ function makeEV(profileIndex: number, over: Partial<EV> = {}): EV {
     nominalV: p.nominalV,
     maxPowerKW: p.maxPowerKW,
     soc: 40,
-    targetSoc: 80,
+    targetSoc: 100, // demo: always charge to full
     priorityWeight: 1,
     waitTimeS: 0,
     timeToDepartureS: 1800,
@@ -68,13 +69,37 @@ function makeEV(profileIndex: number, over: Partial<EV> = {}): EV {
   }
 }
 
-function initialEVs(): EV[] {
+// Load-case EV compositions. Always exactly 3 EVs; targetSoc stays 100.
+//  worst  = 3× EV1 (Kia EV9)        — heavy demand
+//  normal = EV1 + EV2 + EV3         — mixed
+//  best   = 3× EV3 (MG Comet EV)    — light demand
+function makeCaseEVs(caseId: CaseId): EV[] {
   evCounter = 0
-  return [
-    makeEV(0, { soc: 22, targetSoc: 80, timeToDepartureS: 1500 }), // Kia EV9
-    makeEV(1, { soc: 40, targetSoc: 90, timeToDepartureS: 2400 }), // Compact
-    makeEV(2, { soc: 55, targetSoc: 85, timeToDepartureS: 3000 }), // Sedan
-  ]
+  switch (caseId) {
+    case 'worst':
+      return [
+        makeEV(0, { soc: 20, timeToDepartureS: 1200 }),
+        makeEV(0, { soc: 30, timeToDepartureS: 1800 }),
+        makeEV(0, { soc: 40, timeToDepartureS: 2400 }),
+      ]
+    case 'best':
+      return [
+        makeEV(2, { soc: 30, timeToDepartureS: 1200 }),
+        makeEV(2, { soc: 45, timeToDepartureS: 1800 }),
+        makeEV(2, { soc: 55, timeToDepartureS: 2400 }),
+      ]
+    case 'normal':
+    default:
+      return [
+        makeEV(0, { soc: 22, timeToDepartureS: 1500 }),
+        makeEV(1, { soc: 40, timeToDepartureS: 2400 }),
+        makeEV(2, { soc: 55, timeToDepartureS: 3000 }),
+      ]
+  }
+}
+
+function initialEVs(): EV[] {
+  return makeCaseEVs('normal')
 }
 
 function slMod(
@@ -193,6 +218,7 @@ export function createInitialState(): SimState {
       renewablePct: 0,
     },
     activeScenario: null,
+    activeCase: 'normal',
     faultCount: 0,
     reconfigCount: 0,
     seq: 0,
@@ -314,8 +340,11 @@ export class SimulationEngine {
     }
 
     // ---- 6. Source selection (Novelty 2) ----
+    // Gross up demand so that after 4% bus losses exactly totalDemand is delivered.
+    // When supply is limited, selectSources caps at available → rank-last EV takes shortfall.
+    const grossDemand = totalDemand / (1 - LOSS_FACTOR)
     const sel = selectSources(
-      totalDemand,
+      grossDemand,
       solar.outputKW,
       batteryOptions,
       gridOption,
@@ -442,8 +471,13 @@ export class SimulationEngine {
     }
 
     // ---- 12. Metrics ----
-    const supply = solarSourced + battToEV + gridImport
-    const efficiencyPct = supply > 0.01 ? ((supply - losses) / supply) * 100 : 100
+    // Efficiency = energy actually delivered to EVs / total primary energy drawn from all sources.
+    // Denominator includes battery discharge (which already paid charge losses on the way in),
+    // so this captures MPPT, inverter, charge-equipment, and transmission losses end-to-end.
+    const totalEVDelivered = s.evs.reduce((a, e) => a + e.chargePowerKW, 0) * dtH
+    const totalPrimaryDrawn = (solarSourced + battToEV + gridImport) * dtH
+    const efficiencyPct =
+      totalPrimaryDrawn > 0.001 ? clamp((totalEVDelivered / totalPrimaryDrawn) * 100, 0, 100) : 0
     const renewablePct =
       busForEV > 0.01
         ? clamp(((sel.solarToEV + battToEV) / busForEV) * 100, 0, 100)
@@ -537,9 +571,22 @@ export class SimulationEngine {
         this.recompute()
         break
       case 'ADD_EV': {
-        const ev = makeEV(s.evs.length, { soc: 30, targetSoc: 80 })
+        const ev = makeEV(s.evs.length, { soc: 30 })
         s.evs.push(ev)
         this.log('ev', `${ev.name} (${ev.model}) connected — charging requested.`)
+        this.recompute()
+        break
+      }
+      case 'SET_CASE': {
+        s.evs = makeCaseEVs(action.value)
+        s.activeCase = action.value
+        const desc =
+          action.value === 'worst'
+            ? '3× Kia EV9'
+            : action.value === 'best'
+            ? '3× MG Comet EV'
+            : 'Kia EV9 + Tata Punch + MG Comet'
+        this.log('ev', `Load case → ${action.value.toUpperCase()} (${desc}).`)
         this.recompute()
         break
       }
