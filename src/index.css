@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-base: #0b0e13;
+  --bg-panel: #12161d;
+  --line-hairline: #232933;
+  --text-primary: #e7eaee;
+  --text-muted: #8a93a3;
+  --signal-solar: #e8a33d;
+  --signal-battery: #6c8cff;
+  --signal-grid: #35c4c1;
+  --signal-fault: #e24c4c;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Numeric readouts use monospace so digit width does not jitter as values update. */
+.tabnum {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Slim scrollbar consistent with instrumentation aesthetic */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: #232933;
+  border-radius: 0;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #2f3742;
+}
+
+/* Range input styled to match the flat, hairline aesthetic */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: #232933;
+  outline: none;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #e7eaee;
+  border: 1px solid #0b0e13;
+  cursor: pointer;
+}
+input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #e7eaee;
+  border: 1px solid #0b0e13;
+  cursor: pointer;
+  border-radius: 0;
+}
