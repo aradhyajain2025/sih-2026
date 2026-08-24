@@ -55,12 +55,12 @@ export function StatusBar() {
 
       <div className="flex flex-1 flex-wrap items-center justify-end gap-y-2 py-1.5">
         <Stat label="Solar" value={kw(m.solarKW)} unit="kW" color="#E8A33D" />
-        <Stat label="EV Demand" value={kw(m.evDemandKW)} unit="kW" />
+        <Stat label="EV Demand" value={kw(m.evDemandKW)} unit="kW" color = "#FF0000"/>
         <Stat label="Battery" value={battLabel} unit="kW" color="#6C8CFF" />
         <Stat label="Grid" value={kw(m.gridKW)} unit="kW" color="#35C4C1" />
         <Stat label="Export" value={kw(m.gridExportKW)} unit="kW" color="#35C4C1" />
-        <Stat label="Total Load" value={kw(m.totalLoadKW)} unit="kW" />
-        <Stat label="Efficiency" value={pct(m.efficiencyPct)} unit="%" />
+        <Stat label="Total Load" value={kw(m.totalLoadKW)} unit="kW" color="#FFFFFF" />
+        <Stat label="Efficiency" value={pct(m.efficiencyPct)} unit="%" color = "#35C4C1"/>
         <Stat
           label="Renewable"
           value={pct(m.renewablePct)}
