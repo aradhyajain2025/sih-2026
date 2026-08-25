@@ -8,7 +8,7 @@ function EVRow({ ev }: { ev: EV }) {
   const charging = ev.chargePowerKW > 0.5
 
   return (
-    <div className="border border-hairline">
+    <div className={`ev-row border border-hairline ${charging ? 'ev-row-charging' : ''}`}>
       <div className="flex items-center gap-2 border-b border-hairline px-2 py-1.5">
         <span
           className={`tabnum flex h-5 w-5 items-center justify-center text-[11px] font-bold ${
